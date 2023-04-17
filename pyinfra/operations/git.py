@@ -3,6 +3,8 @@ Manage git repositories and configuration.
 """
 
 import re
+from os import PathLike
+from pathlib import Path
 
 from pyinfra import host
 from pyinfra.api import OperationError, operation
@@ -98,6 +100,10 @@ def repo(
         )
     """
 
+    # Convert dest to PathLike object if necessary
+    if not isinstance(dest, PathLike):
+        dest = Path(dest)
+
     # Ensure our target directory exists
     yield from files.directory(dest)
 
@@ -115,7 +121,7 @@ def repo(
 
     # Store git commands for directory prefix
     git_commands = []
-    git_dir = unix_path_join(dest, ".git")
+    git_dir = dest / ".git"
     is_repo = host.get_fact(Directory, path=git_dir)
 
     # Cloning new repo?

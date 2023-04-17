@@ -17,6 +17,7 @@ from pyinfra.api.util import get_kwargs_str
 from pyinfra.context import ctx_config, ctx_inventory, ctx_state
 from pyinfra.operations import server
 
+from .commands import get_facts_and_args, get_func_and_args
 from .exceptions import CliError, UnexpectedExternalError, UnexpectedInternalError
 from .inventory import make_inventory
 from .log import setup_logging
@@ -29,14 +30,7 @@ from .prints import (
     print_state_operations,
     print_support_info,
 )
-from .util import (
-    exec_file,
-    get_facts_and_args,
-    get_func_and_args,
-    load_deploy_file,
-    load_func,
-    parse_cli_arg,
-)
+from .util import exec_file, load_deploy_file, load_func, parse_cli_arg
 from .virtualenv import init_virtualenv
 
 
@@ -338,7 +332,7 @@ def _main(
     # Load up the inventory from the filesystem
     #
     echo_msg("--> Loading inventory...", quiet)
-    inventory, inventory_group = make_inventory(
+    inventory = make_inventory(
         inventory,
         cwd=state.cwd,
         override_data=override_data,

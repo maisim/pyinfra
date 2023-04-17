@@ -7,8 +7,9 @@ from unittest import TestCase
 import pytest
 
 from pyinfra.operations import server
+from pyinfra_cli.commands import get_func_and_args
 from pyinfra_cli.exceptions import CliError
-from pyinfra_cli.util import get_func_and_args, json_encode
+from pyinfra_cli.util import json_encode
 
 
 class TestCliUtil(TestCase):
@@ -29,13 +30,15 @@ class TestCliUtil(TestCase):
     def test_setup_no_module(self):
         with self.assertRaises(CliError) as context:
             get_func_and_args(("no.op",))
-        assert context.exception.message == "No such module: no"
+        assert context.exception.message == "No such module: pyinfra.operations.no"
 
     def test_setup_no_op(self):
         with self.assertRaises(CliError) as context:
             get_func_and_args(("server.no",))
 
-        assert context.exception.message == "No such operation: server.no"
+        assert (
+            context.exception.message == "No such attribute in module pyinfra.operations.server: no"
+        )
 
     def test_setup_op_and_args(self):
         commands = ("pyinfra.operations.server.user", "one", "two", "hello=world")

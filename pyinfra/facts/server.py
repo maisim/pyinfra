@@ -424,7 +424,7 @@ class Users(FactBase):
     command = """
         for i in `cat /etc/passwd | cut -d: -f1`; do
             ENTRY=`grep ^$i: /etc/passwd`;
-            LASTLOG=`lastlog -u $i | grep ^$i` | tr -s ' ';
+            LASTLOG=`lastlog -u $i | grep ^$i | tr -s ' '`;
             echo "$ENTRY|`id -gn $i`|`id -Gn $i`|$LASTLOG";
         done
     """.strip()
@@ -657,3 +657,22 @@ class HasGui(ShortFactBase):
     @staticmethod
     def process_data(data):
         return len(data) > 0
+
+
+class Locales(FactBase):
+    """
+    Returns installed locales on the target host.
+
+    .. code:: python
+
+        ["C.UTF-8", "en_US.UTF-8"]
+    """
+
+    command = "locale -a"
+    requires_command = "locale"
+    default = list
+
+    def process(self, output):
+        # replace utf8 with UTF-8 to match names in /etc/locale.gen
+        # return a list of enabled locales
+        return [line.replace("utf8", "UTF-8") for line in output]

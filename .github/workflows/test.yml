@@ -42,13 +42,16 @@ jobs:
       - type-check
     strategy:
       matrix:
-        os: [ubuntu-20.04]
+        os: [ubuntu-20.04, ubuntu-latest]
         python-version: ["3.6", "3.7", "3.8", "3.9", "3.10", "3.11"]
         include:
           - os: macos-12
             python-version: "3.11"
           - os: windows-2022
             python-version: "3.11"
+        exclude:
+          - os: ubuntu-latest
+            python-version: "3.6"
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
@@ -57,17 +60,18 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - run: pip install '.[test]'
       - run: pytest --cov --disable-warnings
-      - uses: codecov/codecov-action@v1
+      - uses: codecov/codecov-action@v3
 
   # End-to-end tests
   #
 
   end-to-end-test:
     needs:
-      - unit-test
+      - lint
+      - type-check
     strategy:
       matrix:
-        os: [ubuntu-20.04]
+        os: [ubuntu-20.04, ubuntu-latest]
         test-name: [local, ssh, docker]
         include:
           - os: macos-latest
@@ -80,3 +84,19 @@ jobs:
           python-version: "3.11"
       - run: pip install '.[test]'
       - run: pytest -m end_to_end_${{ matrix.test-name }}
+
+  # Finally, single jon to check if all completed, for use in protected branch
+  #
+
+  tests-done:
+    if: ${{ always() }}
+    needs:
+      - lint
+      - type-check
+      - unit-test
+      - end-to-end-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: matrix-org/done-action@v2
+        with:
+          needs: ${{ toJSON(needs) }}

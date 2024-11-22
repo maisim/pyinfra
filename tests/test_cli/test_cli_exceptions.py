@@ -44,7 +44,13 @@ class TestCliExceptions(TestCase):
     def test_no_fact_cls(self):
         self.assert_cli_exception(
             ["my-server.net", "fact", "server.NotAFact"],
-            "No such attribute in module server: NotAFact",
+            (
+                "No such attribute in module server: NotAFact\n"
+                "Available facts in module are: User, Home, Path, TmpDir, Hostname, Kernel, "
+                "KernelVersion, Os, OsVersion, Arch, Command, Which, Date, MacosVersion, Mounts, "
+                "KernelModules, LsbRelease, OsRelease, Sysctl, Groups, Users, LinuxDistribution, "
+                "Selinux, LinuxGui, Locales, SecurityLimits"
+            ),
         )
 
 

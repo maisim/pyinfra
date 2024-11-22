@@ -15,6 +15,7 @@ import click
 import gevent
 
 from pyinfra import logger, state
+from pyinfra.api import FactBase
 from pyinfra.api.command import PyinfraCommand
 from pyinfra.api.exceptions import PyinfraError
 from pyinfra.api.host import HostData
@@ -153,6 +154,37 @@ def parse_cli_arg(arg):
     return arg
 
 
+def get_module_available_actions(module: ModuleType) -> dict[str, list[str]]:
+    """
+    Lists operations and facts available in a module.
+
+    Args:
+        module (ModuleType): The module to inspect.
+
+    Returns:
+        dict: A dictionary with keys 'operations' and 'facts', each containing a list of names.
+    """
+    available_actions: dict[str, list[str]] = {
+        "operations": [],
+        "facts": [],
+    }
+
+    for name, obj in module.__dict__.items():
+        # Check if it's a decorated operation
+        if callable(obj) and getattr(obj, "is_idempotent", None) is not None:
+            available_actions["operations"].append(name)
+
+        # Check if it's a FactBase subclass
+        elif (
+            isinstance(obj, type)
+            and issubclass(obj, FactBase)
+            and obj.__module__ == module.__name__
+        ):
+            available_actions["facts"].append(name)
+
+    return available_actions
+
+
 def try_import_module_attribute(path, prefix=None, raise_for_none=True):
     if ":" in path:
         # Allow a.module.name:function syntax
@@ -189,7 +221,36 @@ def try_import_module_attribute(path, prefix=None, raise_for_none=True):
     attr = getattr(module, attr_name, None)
     if attr is None:
         if raise_for_none:
-            raise CliError(f"No such attribute in module {possible_modules[0]}: {attr_name}")
+            extra_info = []
+            module_name = getattr(module, "__name__", str(module))
+
+            if prefix == "pyinfra.operations":
+                # List classes of type OperationMeta
+                available_operations = get_module_available_actions(module)["operations"]
+                if available_operations:
+                    extra_info.append(
+                        f"Available operations are: {', '.join(available_operations)}"
+                    )
+                else:
+                    extra_info.append(
+                        "No operations found. Maybe you have a file or folder named "
+                        f"`{str(module_name)}` in the current folder ?"
+                    )
+
+            elif prefix == "pyinfra.facts":
+                # List classes of type FactBase
+                available_facts = get_module_available_actions(module)["facts"]
+                if available_facts:
+                    extra_info.append(f"Available facts are: {', '.join(available_facts)}")
+                else:
+                    extra_info.append(
+                        "No facts found. Maybe you have a file or folder named "
+                        f"`{str(module_name)}` in the current folder ?"
+                    )
+
+            message = [f"No such attribute in module {possible_modules[0]}: {attr_name}"]
+
+            raise CliError("\n".join(message + extra_info))
         return
 
     return attr

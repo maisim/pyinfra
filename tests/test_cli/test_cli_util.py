@@ -32,11 +32,16 @@ class TestCliUtil(TestCase):
             get_func_and_args(("no.op",))
         assert context.exception.message == "No such module: no"
 
-    def test_setup_no_op(self):
+    def test_setup_not_exists_op(self):
         with self.assertRaises(CliError) as context:
-            get_func_and_args(("server.no",))
+            get_func_and_args(("server.not_exists",))
 
-        assert context.exception.message == "No such attribute in module server: no"
+        assert context.exception.message == (
+            "No such attribute in module server: not_exists\n"
+            "Available operations are: reboot, wait, shell, script, script_template, "
+            "modprobe, mount, hostname, sysctl, service, packages, crontab, group, "
+            "user_authorized_keys, user, locale, security_limit"
+        )
 
     def test_setup_op_and_args(self):
         commands = ("pyinfra.operations.server.user", "one", "two", "hello=world")

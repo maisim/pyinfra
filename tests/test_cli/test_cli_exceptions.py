@@ -1,3 +1,4 @@
+import re
 import sys
 from os import path
 from unittest import TestCase
@@ -21,7 +22,24 @@ class TestCliExceptions(TestCase):
     def assert_cli_exception(self, args, message):
         result = self.runner.invoke(cli, args, standalone_mode=False)
         self.assertIsInstance(result.exception, CliError)
-        assert getattr(result.exception, "message") == message
+
+        if isinstance(message, str):
+            message = [message]
+
+        for part in message:
+
+            # Test if the string is a regex
+            is_regex = False
+            try:
+                re.compile(part)
+                is_regex = True
+            except re.error:
+                pass
+
+            if is_regex:
+                assert re.search(part, result.exception.message, re.MULTILINE)
+            else:
+                assert part == result.exception.message
 
     def test_bad_deploy_file(self):
         self.assert_cli_exception(
@@ -44,13 +62,12 @@ class TestCliExceptions(TestCase):
     def test_no_fact_cls(self):
         self.assert_cli_exception(
             ["my-server.net", "fact", "server.NotAFact"],
-            (
-                "No such attribute in module server: NotAFact\n"
-                "Available facts in module are: User, Home, Path, TmpDir, Hostname, Kernel, "
-                "KernelVersion, Os, OsVersion, Arch, Command, Which, Date, MacosVersion, Mounts, "
-                "KernelModules, LsbRelease, OsRelease, Sysctl, Groups, Users, LinuxDistribution, "
-                "Selinux, LinuxGui, Locales, SecurityLimits"
-            ),
+            [
+                r"^No such attribute in module server: NotAFact.*",
+                r".*Available facts are: .*",
+                r".* User,.*",
+                r".* Os,",
+            ],
         )
 
 

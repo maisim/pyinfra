@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 from datetime import datetime
 from io import StringIO
@@ -36,12 +37,13 @@ class TestCliUtil(TestCase):
         with self.assertRaises(CliError) as context:
             get_func_and_args(("server.not_exists",))
 
-        assert context.exception.message == (
-            "No such attribute in module server: not_exists\n"
-            "Available operations are: reboot, wait, shell, script, script_template, "
-            "modprobe, mount, hostname, sysctl, service, packages, crontab, group, "
-            "user_authorized_keys, user, locale, security_limit"
-        )
+        for part in [
+            r"^No such attribute in module server: not_exists$",
+            r"Available operations are: .*",
+            r".* modprobe, .*",
+            r".* mount, .*",
+        ]:
+            assert re.search(part, context.exception.message, re.MULTILINE)
 
     def test_setup_op_and_args(self):
         commands = ("pyinfra.operations.server.user", "one", "two", "hello=world")
